@@ -1,0 +1,114 @@
+<?php
+/**
+ * Mageplaza
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Mageplaza.com license that is
+ * available through the world-wide-web at this URL:
+ * https://www.mageplaza.com/LICENSE.txt
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade this extension to newer
+ * version in the future.
+ *
+ * @category    Mageplaza
+ * @package     Mageplaza_LayeredNavigation
+ * @copyright   Copyright (c) Mageplaza (https://www.mageplaza.com/)
+ * @license     https://www.mageplaza.com/LICENSE.txt
+ */
+
+/** @type \Mageplaza\LayeredNavigation\Model\Layer\Filter\Attribute $filter */
+$filter = $this->getFilter();
+$attributeCode = $filter->getRequestVar();
+
+/** @type \Mageplaza\Layerednavigation\Model\Layer\Filter $filterModel */
+$filterModel = $this->helper(\Mageplaza\LayeredNavigation\Helper\Data::class)->getFilterModel();
+$filterInitialized = [];
+?>
+<ol class="items">
+    <?php /** @type \Magento\Catalog\Model\Layer\Filter\Item[] $filterItems */
+    foreach ($filterItems as $filterItem): ?>
+        <li class="item">
+            <?php if ($filterModel->isSliderTypes($filter)): ?>
+                <?php if (!isset($filterInitialized[$attributeCode])): ?>
+                <x-child-element x-data="initSliderFilter_<?= $attributeCode; ?>(options, '<?= $attributeCode ?>')" x-init="initSliderBindings()">
+                    <div id="ln_slider_container_<?= /** @noEscape */ $attributeCode ?>" class="ln_slider_container">
+                        <div id="mpFilterSlider[<?= /** @noEscape */ $attributeCode ?>]"></div>
+                        <div x-html="sliderFromTo" class="pt-4"></div>
+                    </div>
+                </x-child-element>
+                <?php $filterInitialized[$attributeCode] = true; endif; ?>
+            <?php else: ?>
+                <?php if ($filterItem->getCount() > 0): ?>
+                    <input type="<?= /** @noEscape */ $filterModel->isMultiple($filter) ? 'checkbox' : 'radio' ?>"
+                       @click="$dispatch('filter-by-option', {option: '<?= $filter->getRequestVar(); ?>', url: '<?= /** @noEscape */ $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>' })"
+                        <?= /** @noEscape */ $filterModel->isMultiple($filter) ? '' : 'name="' . $filter->getRequestVar() . '"' ?>
+                        <?= /** @noEscape */ $filterModel->isSelected($filterItem) ? 'checked="checked"' : '' ?> />
+                <?php else: ?>
+                    <input type="<?= /** @noEscape */ $filterModel->isMultiple($filter) ? 'checkbox' : 'radio' ?>"
+                           disabled="disabled"/>
+                <?php endif; ?>
+                <a href="<?= /** @noEscape */ $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>">
+                    <?= /** @noEscape */ $filterItem->getLabel() ?>
+                    <?php if ($filterModel->isShowCounter($filter)): ?>
+                        <span class="count"><?= /** @noEscape */ $filterItem->getCount() ?>
+                            <span class="filter-count-label">
+                                <?= /** @noEscape */ ($filterItem->getCount() === 1) ? 'item' : 'items' ?>
+                            </span>
+                        </span>
+                    <?php endif; ?>
+                </a>
+            <?php endif; ?>
+            <script>
+                function initSliderFilter_<?= $attributeCode ?>(options, attributeCode) {
+                    let slider = document.getElementById('mpFilterSlider[' + attributeCode + ']');
+                    if (typeof slider.noUiSlider === "undefined") {
+                        noUiSlider.create(slider, {
+                            start: [options.slider[attributeCode].selectedFrom, options.slider[attributeCode].selectedTo],
+                            connect: true,
+                            range: {
+                                'min': options.slider[attributeCode].minValue,
+                                'max': options.slider[attributeCode].maxValue
+                            }
+                        });
+                    }
+                    return {
+                        slider: slider,
+                        value: 0,
+                        minValue: 0,
+                        maxValue: 10000,
+                        sliderFromTo: '',
+                        options: options.slider[attributeCode],
+                        initSliderBindings: function() {
+                            let self = this;
+                            let from = 0;
+                            let to = 0;
+                            if (attributeCode === "price") {
+                                from = hyva.formatPrice(options.slider[attributeCode].selectedFrom);
+                                to = hyva.formatPrice(options.slider[attributeCode].selectedTo);
+                            } else {
+                                from = options.slider[attributeCode].selectedFrom;
+                                to = options.slider[attributeCode].selectedTo;
+                            }
+                            this.sliderFromTo = from + ' - ' + to;
+                            slider.noUiSlider.on('change.one', function (event) {
+                                let url = self.getSliderUrl(event[0], event[1]);
+                                window.dispatchEvent(new CustomEvent('filter-by-option', {
+                                    detail: {
+                                        option: attributeCode,
+                                        url: url
+                                    }
+                                }))
+                            });
+                        },
+                        getSliderUrl: function (from, to) {
+                            return options.slider[attributeCode].ajaxUrl.replace('from-to', from + '-' + to);
+                        },
+                    }
+                }
+            </script>
+        </li>
+    <?php endforeach ?>
+</ol>

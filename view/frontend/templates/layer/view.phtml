@@ -1,0 +1,113 @@
+<?php
+/**
+ * Mageplaza
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Mageplaza.com license that is
+ * available through the world-wide-web at this URL:
+ * https://www.mageplaza.com/LICENSE.txt
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade this extension to newer
+ * version in the future.
+ *
+ * @category    Mageplaza
+ * @package     Mageplaza_LayeredNavigation
+ * @copyright   Copyright (c) Mageplaza (https://www.mageplaza.com/)
+ * @license     https://www.mageplaza.com/LICENSE.txt
+ */
+
+if ($block->canShowBlock()): ?>
+    <?php
+    $filters     = $block->getFilters();
+    $helperData  = $this->helper(\Mageplaza\LayeredNavigation\Helper\Data::class);
+    $layerConfig = $helperData->getLayerConfiguration($filters);
+    $filtered    = count($block->getLayer()->getState()->getFilters());
+    $helperImage = $this->helper(\Mageplaza\LayeredNavigation\Helper\Image::class);
+    $category = $block->getLayer()->getCurrentCategory();
+    $hideAttributes = $category->getData('mp_ln_hide_attribute_ids');
+    /** @type \Mageplaza\Layerednavigation\Model\Layer\Filter $filterModel */
+    $filterModel = $this->helper(\Mageplaza\LayeredNavigation\Helper\Data::class)->getFilterModel();
+    ?>
+    <div class="block filter" id="layered-filter-block">
+        <div class="block-title filter-title" data-count="<?= /** @noEscape */ $filtered ?>">
+            <strong data-role="title"><?= /** @noEscape */ __('Shop By') ?></strong>
+        </div>
+        <div class="block-content filter-content" x-data="initMpLayer()"
+        @filter-by-option.window="filterByOption($event.detail);">
+            <?= /** @noEscape */ $block->getChildHtml('state') ?>
+            <?php $wrapOptions = false; ?>
+            <?php foreach ($filters as $key => $filter): ?>
+                <?php if ($filter->getItemsCount()): ?>
+                    <?php if ($hideAttributes && is_array($hideAttributes) && in_array($filter->getRequestVar(), $hideAttributes, true)) {continue;} ?>
+                    <?php if (!$wrapOptions): ?>
+                        <strong role="heading" aria-level="2" class="block-subtitle filter-subtitle">
+                            <?= /** @noEscape */ __('Shopping Options') ?>
+                        </strong>
+                        <div class="filter-options" id="narrow-by-list" data-role="content">
+                        <?php $wrapOptions = true; ?>
+                    <?php endif; ?>
+                            <div class="filter-options-item cursor-pointer border-b-2 py-4"
+                                 attribute="<?= /** @noEscape */ $filter->getRequestVar() ?>">
+                                <div class="filter-options-title" @click="filters['<?= $filter->getRequestVar() ?>'] = ! filters['<?= $filter->getRequestVar() ?>']">
+                                    <?= /** @noEscape */ __($filter->getName()) ?>
+                                    <?php if ($filter->hasAttributeModel()
+                                        && $filter->getAttributeModel()->getData('show_tooltip') === '1'): ?>
+                                        <?php
+                                        $imageUrl = $helperImage->getTooltipThumbnail($filter);
+                                        $tooltipContent = $helperData->getTooltipContent($filter);
+                                        ?>
+                                        <span data-toggle="tooltip" title="<?= $block->escapeHtml($tooltipContent) ?>">
+                                            <?php if ($imageUrl): ?>
+                                            <image src="<?= $block->escapeUrl($imageUrl) ?>" width="22" height="22"
+                                                   class="ln_tooltip_thumbnail"
+                                                   alt="<?= $block->escapeHtml($tooltipContent) ?>">
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="filter-options-content pt-4" x-show="filters['<?= $filter->getRequestVar() ?>']" x-collapse>
+                                    <?php if ($filter instanceof \Mageplaza\LayeredNavigation\Model\Layer\Filter\Category && $filter->isRenderCategoryTree()): ?>
+                                        <?= /** @noEscape */ $block->getChildBlock('mplayer-renderer')->setFilter($filter)->render($filter) ?>
+                                    <?php else: ?>
+                                        <?= /** @noEscape */ $block->getChildBlock('renderer')->setFilter($filter)->render($filter) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+            <?php if ($wrapOptions): ?>
+                         </div>
+            <?php endif; ?>
+            <?= /** @noEscape */ $block->getChildHtml('layer_additional_info') ?>
+        </div>
+    </div>
+    <?php if ($helperData->getHtmlHighLight()) {
+        echo /** @noEscape */ $helperData->getHtmlHighLight($block->getLayout());
+    } ?>
+    <script type="module"
+            src="<?= $escaper->escapeUrl($block->getViewFileUrl("Hyva_MageplazaLayeredNavigation::js/nouislider.min.js")) ?>"
+            defer
+            crossorigin
+    ></script>
+    <script>
+        function initMpLayer() {
+            return {
+                filterByOption(eventData) {
+                    if (typeof eventData.url !== 'undefined') {
+                        window.location.href = eventData.url;
+                    }
+                },
+                options: <?= $layerConfig ?>,
+                filters: {
+                    <?php foreach ($filters as $key => $filter): ?>
+                    <?= $filter->getRequestVar(); ?>: <?= empty($filterModel->getFilterValue($filter)) ? 'false' : 'true'; ?>,
+                    <?php endforeach; ?>
+                }
+            }
+        }
+    </script>
+<?php endif; ?>
+
