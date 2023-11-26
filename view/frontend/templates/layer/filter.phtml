@@ -41,16 +41,17 @@ $filterInitialized = [];
                 </x-child-element>
                 <?php $filterInitialized[$attributeCode] = true; endif; ?>
             <?php else: ?>
+                <?php $itemFilterUrl = $block->escapeUrl($filterModel->getItemUrl($filterItem)); ?>
                 <?php if ($filterItem->getCount() > 0): ?>
                     <input type="<?= /** @noEscape */ $filterModel->isMultiple($filter) ? 'checkbox' : 'radio' ?>"
-                       @click="$dispatch('filter-by-option', {option: '<?= $filter->getRequestVar(); ?>', url: '<?= /** @noEscape */ $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>' })"
+                       @click="$dispatch('filter-by-option', {option: '<?= $filter->getRequestVar(); ?>', url: '<?= /** @noEscape */ $itemFilterUrl ?>' })"
                         <?= /** @noEscape */ $filterModel->isMultiple($filter) ? '' : 'name="' . $filter->getRequestVar() . '"' ?>
                         <?= /** @noEscape */ $filterModel->isSelected($filterItem) ? 'checked="checked"' : '' ?> />
                 <?php else: ?>
                     <input type="<?= /** @noEscape */ $filterModel->isMultiple($filter) ? 'checkbox' : 'radio' ?>"
                            disabled="disabled"/>
                 <?php endif; ?>
-                <a href="<?= /** @noEscape */ $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>">
+                <a href="<?= /** @noEscape */ $itemFilterUrl ?>">
                     <?= /** @noEscape */ $filterItem->getLabel() ?>
                     <?php if ($filterModel->isShowCounter($filter)): ?>
                         <span class="count"><?= /** @noEscape */ $filterItem->getCount() ?>
